@@ -10,10 +10,7 @@ System_Ext(external_partners, "Внешние Партнеры", "Страхов
 System_Boundary(future_platform, "Платформа Будущее 2.0 (Событийно-ориентированная архитектура)") {
 
     Container(api_gateway, "API Gateway / BFF", "Go/Java", "Единая точка входа для клиентов, маршрутизация, аутентификация")
-
     Container(auth_service, "Сервис Аутентификации (Identity Provider)", "Keycloak/OIDC", "Централизованная аутентификация и авторизация")
-
-    ContainerDb(event_bus, "Шина Событий", "Kafka/Pulsar", "Магистраль для асинхронного обмена сообщениями между доменами")
 
     System_Boundary(medicine_domain, "Домен Медицина") {
         Container(emr_service, "Сервис ЭМК (EMR)", "Java/Spring", "Управляет электронными медицинскими картами")
@@ -40,6 +37,14 @@ System_Boundary(future_platform, "Платформа Будущее 2.0 (Соб�
         Container(data_portal_backend, "Бэкенд Портала Данных", "Python/FastAPI", "API для аналитики самообслуживания, поиск по каталогу")
         Container(data_portal_ui, "UI Портала Данных", "React/Vue", "Веб-интерфейс для аналитиков для построения отчетов")
     }
+
+    Container(event_bus, "Шина Событий", "Kafka/Pulsar", "Магистраль для асинхронного обмена сообщениями между доменами")
+
+    System_Boundary(legacy_zone, "Legacy зона (этап миграции)") {
+        Container(legacy_bridge, "Legacy Bridge", "Apache Camel + CDC", "Антикоррупционный слой. Синхронизация данных из SQL Server 2008 через CDC, маршрутизация, ФЛК, трансформации, интеграционная бизнес-логика ESB. Выводится из эксплуатации после 3х лет")
+        Container(legacy_esb, "Legacy ESB", "Apache Camel", "Старая шина данных: синхронные интеграции, orchestration, трансформации сообщений. Постепенно заменяется событиями. Полный вывод после 3х лет")
+        ContainerDb(legacy_dwh, "Legacy DWH", "SQL Server 2008", "Текущее хранилище с исторической бизнес-логикой и отчетностью. Только чтение после миграции. Полный вывод после 3х лет")
+    }
 }
 
 Rel(patient, api_gateway, "Использует", "HTTPS")
@@ -63,6 +68,10 @@ Rel(stream_processing, analytical_db, "Записывает агрегирова
 Rel(data_portal_backend, analytical_db, "Запрашивает данные", "SQL")
 Rel(data_portal_backend, data_lake, "Доступ к историческим данным", "S3 API")
 Rel(data_portal_ui, data_portal_backend, "Вызовы API", "HTTPS")
+
+Rel(legacy_dwh, legacy_bridge, "CDC")
+Rel(legacy_esb, legacy_bridge, "Legacy интеграции")
+Rel(legacy_bridge, event_bus, "Публикует события", "Протокол Kafka")
 
 Rel(external_partners, api_gateway, "Интеграция API", "HTTPS")
 
