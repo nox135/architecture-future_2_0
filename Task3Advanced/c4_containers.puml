@@ -30,27 +30,30 @@ System_Boundary(future_platform, "Платформа Будущее 2.0 (Соб�
         ContainerDb(model_registry, "Реестр Моделей", "MLflow", "Хранит версии моделей")
     }
 
-        System_Boundary(data_platform, "Платформа Данных и Аналитики") {
-                Container(stream_processing, "Потоковый Процессор", "Flink/Spark Streaming", "Трансформация и обогащение данных в реальном времени")
-                ContainerDb(data_lake, "Озеро Данных (Data Lake)", "S3/MinIO + Delta Lake", "Хранение сырых и обработанных данных (Bronze/Silver/Gold)")
-                ContainerDb(analytical_db, "Аналитическая БД (Витрины)", "ClickHouse/Greenplum", "Высокоскоростной движок для отчетов")
-                Container(data_portal_backend, "Бэкенд Портала Данных", "Python/FastAPI", "API для аналитики самообслуживания, поиск по каталогу")
-                Container(data_portal_ui, "UI Портала Данных", "React/Vue", "Веб-интерфейс для аналитиков для построения отчетов")
-        }
+    System_Boundary(data_platform, "Платформа Данных и Аналитики") {
+        Container(stream_processing, "Потоковый Процессор", "Flink/Spark Streaming", "Трансформация и обогащение данных в реальном времени")
+        ContainerDb(data_lake, "Озеро Данных (Data Lake)", "S3/MinIO + Delta Lake", "Хранение сырых и обработанных данных (Bronze/Silver/Gold)")
+        ContainerDb(analytical_db, "Аналитическая БД (Витрины)", "ClickHouse/Greenplum", "Высокоскоростной движок для отчетов")
+        Container(data_portal_backend, "Бэкенд Портала Данных", "Python/FastAPI", "API для аналитики самообслуживания, поиск по каталогу")
+        Container(data_portal_ui, "UI Портала Данных", "React/Vue", "Веб-интерфейс для аналитиков для построения отчетов")
+    }
 
     Container(event_bus, "Шина Событий", "Kafka/Pulsar", "Магистраль для асинхронного обмена сообщениями между доменами")
 
     System_Boundary(legacy_zone, "Legacy зона (этап миграции)") {
-                Container(legacy_bridge, "Legacy Bridge (ACL)", "Apache Camel + CDC", "Антикоррупционный слой: адаптация схем, фильтрация, ФЛК (частично), маршрутизация и публикация событий в шину. Находится в режиме 'bridge' и постепенно сокращается")
-                Container(legacy_esb, "Legacy ESB", "Apache Camel", "Старая шина данных: синхронные интеграции и orchestration. Используется как мост совместимости; постепенно заменяется event-driven связями")
-                ContainerDb(legacy_dwh, "Legacy DWH", "SQL Server 2008", "Исторические данные и источники правды. Используется в режиме только чтения и для миграции данных в Data Lake/Gold")
-        
-                note right of legacy_bridge
-                    ФЛК — входная валидация в ACL, runtime‑проверки в Stream Processing, ретрокоррекция в Batch;
-                    Трансформации — batch (bronze->silver) в batch‑пайплайнах / Data Lake; stream->vitrina в потоках;
-                    Интеграции — временно в Legacy ESB, дальше через API Gateway/ACL -> Event Bus -> потребители;
-                    Бизнес‑логика — транзакционная в доменных сервисах; агрегирующая в трансформациях/витринах.
-                end note
+        Container(legacy_bridge, "Legacy Bridge", "Apache Camel + CDC", "Антикоррупционный слой. Синхронизация данных из SQL Server 2008 через CDC, маршрутизация, ФЛК, трансформации, интеграционная бизнес-логика ESB. Выводится из эксплуатации после 3х лет")
+        Container(legacy_esb, "Legacy ESB", "Apache Camel", "Старая шина данных: синхронные интеграции, orchestration, трансформации сообщений. Постепенно заменяется событиями. Полный вывод после 3х лет")
+        ContainerDb(legacy_dwh, "Legacy DWH", "SQL Server 2008", "Текущее хранилище с исторической бизнес-логикой и отчетностью. Только чтение после миграции. Полный вывод после 3х лет")
+
+        note right of legacy_bridge
+            ФЛК — входная валидация в ACL, runtime‑проверки в Stream Processing, ретрокоррекция в batch;
+            Трансформации — batch (bronze->silver) в batch‑пайплайнах / Data Lake; stream->vitrina в потоках;
+            Интеграции — временно в Legacy ESB, дальше через API Gateway/ACL -> Event Bus -> потребители;
+            Бизнес‑логика — транзакционная в доменных сервисах; агрегирующая в трансформациях/витринах.
+        end note
+    }
+}
+
 Rel(patient, api_gateway, "Использует", "HTTPS")
 Rel(doctor, api_gateway, "Использует", "HTTPS")
 Rel(fintech_user, api_gateway, "Использует", "HTTPS")
