@@ -1,0 +1,57 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title "Ограниченные Контексты и Отношения (Будущее 2.0)"
+
+' Определяем контексты
+rectangle "Домен Медицина" {
+    component "Контекст Управления\nПациентами" as PatientCtx
+    component "Контекст Медицинских\nЗаписей (ЭМК)" as MedRecCtx
+    component "Контекст Диагностики\nи ИИ" as DiagCtx
+}
+
+rectangle "Домен Финтех" {
+    component "Контекст Основного\nБанкинга (АБС)" as BankCtx
+    component "Контекст Кредитования" as LoanCtx
+}
+
+rectangle "Домен Данных" {
+    component "Контекст Аналитики\nи Отчетности" as AnalyticsCtx
+}
+
+' Отношения (Context Mapping)
+
+' PatientCtx -> MedRecCtx (Partnership / Shared Kernel for patient id)
+PatientCtx -[hidden]-> MedRecCtx
+PatientCtx "Upstream" --> "Downstream (ACL)" MedRecCtx : PatientRegistered (Пациент зарегистрирован)
+
+' MedRecCtx -> DiagCtx (Customer/Supplier)
+MedRecCtx "Upstream" --> "Downstream" DiagCtx : DiagnosticOrdered (Назначена диагностика)
+
+' DiagCtx -> MedRecCtx (Open Host Service)
+DiagCtx "Upstream (OHS)" --> "Downstream" MedRecCtx : DiagnosticResultReady (Результат готов)
+
+' MedRecCtx -> BankCtx (Customer/Supplier - Billing)
+MedRecCtx "Upstream" --> "Downstream" BankCtx : ServiceRendered (Услуга оказана)
+
+' PatientCtx -> BankCtx (Shared Kernel on Person ID)
+PatientCtx -[hidden]-> BankCtx
+PatientCtx "Upstream" --> "Downstream (ACL)" BankCtx : PatientUpdated (Данные пациента обновлены)
+
+' BankCtx -> LoanCtx (Partnership)
+BankCtx "Upstream" --> "Downstream" LoanCtx : AccountStatus (Статус счета)
+
+' All -> AnalyticsCtx (Published Language)
+PatientCtx ..> AnalyticsCtx : Events (PL - События)
+MedRecCtx ..> AnalyticsCtx : Events (PL - События)
+DiagCtx ..> AnalyticsCtx : Events (PL - События)
+BankCtx ..> AnalyticsCtx : Events (PL - События)
+LoanCtx ..> AnalyticsCtx : Events (PL - События)
+
+note right of PatientCtx : Агрегаты:\n- Пациент (Patient)\n- Контактная информация (ContactInfo)
+note bottom of MedRecCtx : Агрегаты:\n- История болезни (MedicalHistory)\n- Прием (Appointment)\n- План лечения (TreatmentPlan)
+note bottom of DiagCtx : Агрегаты:\n- Заказ на диагностику (DiagnosticOrder)\n- Результат анализа (AnalysisResult)\n- Модель ИИ (AIModel)
+note right of BankCtx : Агрегаты:\n- Банковский счет (BankAccount)\n- Транзакция (Transaction)\n- Счет на оплату (Invoice)
+note bottom of LoanCtx : Агрегаты:\n- Заявка на кредит (LoanApplication)\n- Кредитный скоринг (CreditScore)\n- Кредитный договор (LoanAgreement)
+
+@enduml
