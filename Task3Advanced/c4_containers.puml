@@ -1,115 +1,82 @@
 @startuml
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
 
-Person(patient, "Пациент", "Использует мобильное приложение/веб-портал")
-Person(doctor, "Врач", "Использует внутреннюю систему")
-Person(analyst, "Бизнес-аналитик", "Использует Портал Данных")
+Person(patient, "Пациент", "Использует мобильное приложение/веб-портал для записи на прием и просмотра результатов")
+Person(doctor, "Врач", "Использует внутреннюю систему для ведения медицинских карт и диагностики")
+Person(analyst, "Бизнес-аналитик", "Использует Портал Данных для отчетов и аналитики самообслуживания")
 Person(fintech_user, "Клиент Финтеха", "Пользуется банковскими услугами")
 System_Ext(external_partners, "Внешние Партнеры", "Страховые компании, Аптеки, Производители оборудования")
 
+System_Boundary(future_platform, "Платформа Будущее 2.0 (Событийно-ориентированная архитектура)") {
 
-System_Boundary(future_platform, "Платформа Будущее 2.0") {
-
-    Container(api_gateway, "API Gateway / BFF", "Go/Java", "Единая точка входа")
-    Container(auth_service, "Сервис Аутентификации", "Keycloak/OIDC", "Аутентификация и роли")
-    Container(event_bus, "Шина Событий", "Kafka/Pulsar", "Обмен событиями между доменами")
+    Container(api_gateway, "API Gateway / BFF", "Go/Java", "Единая точка входа для клиентов, маршрутизация, аутентификация")
+    Container(auth_service, "Сервис Аутентификации (Identity Provider)", "Keycloak/OIDC", "Централизованная аутентификация и авторизация")
 
     System_Boundary(medicine_domain, "Домен Медицина") {
-        Container(emr_service, "Сервис ЭМК (EMR)", "Java/Spring", "Электронные медицинские карты")
-        Container(diagnostics_service, "Сервис Диагностики", "Python", "Работа с оборудованием")
-        ContainerDb(med_db, "Медицинская БД", "PostgreSQL", "Данные пациентов")
+        Container(emr_service, "Сервис ЭМК (EMR)", "Java/Spring", "Управляет электронными медицинскими картами")
+        Container(diagnostics_service, "Сервис Диагностики", "Python", "Обрабатывает диагностические данные и интеграцию с оборудованием")
+        ContainerDb(med_db, "Медицинская БД", "PostgreSQL", "Хранит данные пациентов")
     }
 
     System_Boundary(fintech_domain, "Домен Финтех") {
-        Container(banking_service, "Основной Банковский Сервис", "Go", "Счета и транзакции")
-        Container(credit_service, "Кредитный Сервис", "Go", "Заявки на кредит")
+        Container(banking_service, "Основной Банковский Сервис", "Go", "Управляет счетами, транзакциями")
+        Container(credit_service, "Кредитный Сервис", "Go", "Обработка заявок на кредит")
         ContainerDb(fin_db, "Финтех БД", "PostgreSQL/CockroachDB", "Финансовые данные")
     }
 
     System_Boundary(ai_domain, "Домен ИИ") {
-        Container(ai_model_service, "Сервис ИИ (Inference)", "Python", "Прогнозы")
-        Container(ai_training_pipeline, "Пайплайн Обучения", "Kubeflow", "Обучение моделей")
-        ContainerDb(model_registry, "Реестр Моделей", "MLflow", "Версии моделей")
+        Container(ai_model_service, "Сервис ИИ (Inference)", "Python/TensorFlow", "Предоставляет прогнозы в реальном времени")
+        Container(ai_training_pipeline, "Пайплайн Обучения", "Kubeflow", "Переобучает модели на новых данных")
+        ContainerDb(model_registry, "Реестр Моделей", "MLflow", "Хранит версии моделей")
     }
 
-    System_Boundary(data_platform, "Платформа Данных и Аналитики") {
-        Container(stream_processing, "Потоковый Процессор", "Flink/Spark", "Проверки и трансформации")
-        ContainerDb(data_lake, "Озеро Данных", "S3/Delta Lake", "История и сырые данные")
-        ContainerDb(analytical_db, "Аналитическая БД", "ClickHouse/Greenplum", "Витрины и отчеты")
-        Container(data_portal_backend, "Бэкенд Портала Данных", "Python/FastAPI", "API аналитики")
-        Container(data_portal_ui, "UI Портала Данных", "React/Vue", "Self-service отчеты")
-    }
+        System_Boundary(data_platform, "Платформа Данных и Аналитики") {
+                Container(stream_processing, "Потоковый Процессор", "Flink/Spark Streaming", "Трансформация и обогащение данных в реальном времени")
+                ContainerDb(data_lake, "Озеро Данных (Data Lake)", "S3/MinIO + Delta Lake", "Хранение сырых и обработанных данных (Bronze/Silver/Gold)")
+                ContainerDb(analytical_db, "Аналитическая БД (Витрины)", "ClickHouse/Greenplum", "Высокоскоростной движок для отчетов")
+                Container(data_portal_backend, "Бэкенд Портала Данных", "Python/FastAPI", "API для аналитики самообслуживания, поиск по каталогу")
+                Container(data_portal_ui, "UI Портала Данных", "React/Vue", "Веб-интерфейс для аналитиков для построения отчетов")
+        }
 
-    System_Boundary(legacy_zone, "Legacy зона") {
-        Container(legacy_bridge, "Legacy Bridge", "Apache Camel + CDC", "Переходный слой. Выводится из эксплуатации после 3х лет")
-        Container(legacy_esb, "Legacy ESB", "Apache Camel", "Полный вывод после 3х лет")
-        ContainerDb(legacy_dwh, "Legacy DWH", "SQL Server 2008", "Только чтение после миграции")
-    }
-}
+    Container(event_bus, "Шина Событий", "Kafka/Pulsar", "Магистраль для асинхронного обмена сообщениями между доменами")
 
-' Расстановка блоков
-Lay_D(api_gateway, auth_service)
-Lay_D(auth_service, event_bus)
+    System_Boundary(legacy_zone, "Legacy зона (этап миграции)") {
+                Container(legacy_bridge, "Legacy Bridge (ACL)", "Apache Camel + CDC", "Антикоррупционный слой: адаптация схем, фильтрация, ФЛК (частично), маршрутизация и публикация событий в шину. Находится в режиме 'bridge' и постепенно сокращается")
+                Container(legacy_esb, "Legacy ESB", "Apache Camel", "Старая шина данных: синхронные интеграции и orchestration. Используется как мост совместимости; постепенно заменяется event-driven связями")
+                ContainerDb(legacy_dwh, "Legacy DWH", "SQL Server 2008", "Исторические данные и источники правды. Используется в режиме только чтения и для миграции данных в Data Lake/Gold")
+        
+                note right of legacy_bridge
+                    ФЛК — входная валидация в ACL, runtime‑проверки в Stream Processing, ретрокоррекция в Batch;
+                    Трансформации — batch (bronze->silver) в batch‑пайплайнах / Data Lake (запланированные batch‑job'ы); stream->vitrina в потоках;
+                    Интеграции — временно в Legacy ESB, дальше через API Gateway/ACL -> Event Bus -> потребители;
+                    Бизнес‑логика — транзакционная в доменных сервисах; агрегирующая в трансформациях/витринах.
+                end note
+Rel(patient, api_gateway, "Использует", "HTTPS")
+Rel(doctor, api_gateway, "Использует", "HTTPS")
+Rel(fintech_user, api_gateway, "Использует", "HTTPS")
+Rel(analyst, data_portal_ui, "Использует", "HTTPS")
 
-Lay_D(event_bus, emr_service)
-Lay_R(emr_service, banking_service)
-Lay_R(banking_service, ai_model_service)
-Lay_R(ai_model_service, stream_processing)
+Rel(api_gateway, auth_service, "Аутентифицирует", "gRPC/HTTP")
+Rel(api_gateway, emr_service, "Проксирует запросы", "gRPC")
+Rel(api_gateway, banking_service, "Проксирует запросы", "gRPC")
 
-Lay_D(emr_service, diagnostics_service)
-Lay_D(diagnostics_service, med_db)
+Rel(emr_service, event_bus, "Публикует/Подписывается на события", "Протокол Kafka")
+Rel(diagnostics_service, event_bus, "Публикует события", "Протокол Kafka")
+Rel(banking_service, event_bus, "Публикует/Подписывается на события", "Протокол Kafka")
+Rel(ai_model_service, event_bus, "Подписывается на события данных", "Протокол Kafka")
 
-Lay_D(banking_service, credit_service)
-Lay_D(credit_service, fin_db)
+Rel(stream_processing, event_bus, "Потребляет сырые события", "Протокол Kafka")
+Rel(stream_processing, data_lake, "Записывает обработанные данные", "S3 API")
+Rel(stream_processing, analytical_db, "Записывает агрегированные данные", "JDBC/Native")
 
-Lay_D(ai_model_service, ai_training_pipeline)
-Lay_D(ai_training_pipeline, model_registry)
-
-Lay_D(stream_processing, data_lake)
-Lay_D(data_lake, analytical_db)
-Lay_D(analytical_db, data_portal_backend)
-Lay_D(data_portal_backend, data_portal_ui)
-
-Lay_L(emr_service, legacy_bridge)
-Lay_D(legacy_bridge, legacy_esb)
-Lay_D(legacy_esb, legacy_dwh)
-
-' Пользователи
-Rel(patient, api_gateway, "Использует")
-Rel(doctor, api_gateway, "Использует")
-Rel(fintech_user, api_gateway, "Использует")
-Rel(analyst, data_portal_ui, "Использует")
-Rel(external_partners, api_gateway, "Интеграция API")
-
-' Основные связи
-Rel(api_gateway, auth_service, "Аутентификация")
-Rel(api_gateway, emr_service, "Запросы")
-Rel(api_gateway, banking_service, "Запросы")
-
-Rel(emr_service, med_db, "Данные")
-Rel(diagnostics_service, med_db, "Запись")
-
-Rel(banking_service, fin_db, "Данные")
-Rel(credit_service, fin_db, "Данные")
-
-Rel(emr_service, event_bus, "События")
-Rel(diagnostics_service, event_bus, "События")
-Rel(banking_service, event_bus, "События")
-Rel(credit_service, event_bus, "События")
-Rel(ai_model_service, event_bus, "Читает")
-
-Rel(stream_processing, event_bus, "Читает")
-Rel(stream_processing, data_lake, "Запись")
-Rel(stream_processing, analytical_db, "Витрины")
-
-Rel(data_portal_ui, data_portal_backend, "API")
-Rel(data_portal_backend, analytical_db, "SQL")
-Rel(data_portal_backend, data_lake, "История")
+Rel(data_portal_backend, analytical_db, "Запрашивает данные", "SQL")
+Rel(data_portal_backend, data_lake, "Доступ к историческим данным", "S3 API")
+Rel(data_portal_ui, data_portal_backend, "Вызовы API", "HTTPS")
 
 Rel(legacy_dwh, legacy_bridge, "CDC")
-Rel(legacy_esb, legacy_bridge, "Интеграции")
-Rel(legacy_bridge, event_bus, "События")
-Rel(legacy_bridge, emr_service, "Логика")
-Rel(legacy_bridge, banking_service, "Логика")
+Rel(legacy_esb, legacy_bridge, "Legacy интеграции")
+Rel(legacy_bridge, event_bus, "Публикует события", "Протокол Kafka")
+
+Rel(external_partners, api_gateway, "Интеграция API", "HTTPS")
 
 @enduml
