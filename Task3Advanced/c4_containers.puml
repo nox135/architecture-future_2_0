@@ -47,7 +47,7 @@ System_Boundary(future_platform, "Платформа Будущее 2.0 (Соб�
         
                 note right of legacy_bridge
                     ФЛК — входная валидация в ACL, runtime‑проверки в Stream Processing, ретрокоррекция в Batch;
-                    Трансформации — batch (bronze->silver) в batch‑пайплайнах / Data Lake (запланированные batch‑job'ы); stream->vitrina в потоках;
+                    Трансформации — batch (bronze->silver) в batch‑пайплайнах / Data Lake; stream->vitrina в потоках;
                     Интеграции — временно в Legacy ESB, дальше через API Gateway/ACL -> Event Bus -> потребители;
                     Бизнес‑логика — транзакционная в доменных сервисах; агрегирующая в трансформациях/витринах.
                 end note
